@@ -1,0 +1,59 @@
+#include <stdlib.h>
+
+typedef struct {
+    int child[2];
+} Node;
+
+int findMaximumXOR(int* nums, int numsSize) {
+    Node* trie = malloc(sizeof(Node) * (numsSize * 31 + 1));
+    int nodes = 1;
+
+    trie[0].child[0] = -1;
+    trie[0].child[1] = -1;
+
+    // Insert all numbers into the Trie
+    for (int i = 0; i < numsSize; i++) {
+        int cur = 0;
+
+        for (int bit = 30; bit >= 0; bit--) {
+            int b = (nums[i] >> bit) & 1;
+
+            if (trie[cur].child[b] == -1) {
+                trie[cur].child[b] = nodes;
+
+                trie[nodes].child[0] = -1;
+                trie[nodes].child[1] = -1;
+
+                nodes++;
+            }
+
+            cur = trie[cur].child[b];
+        }
+    }
+
+    int answer = 0;
+    for (int i = 0; i < numsSize; i++) {
+        int cur = 0;
+        int value = 0;
+
+        for (int bit = 30; bit >= 0; bit--) {
+            int b = (nums[i] >> bit) & 1;
+            int opposite = 1 - b;
+
+            // Prefer the opposite bit to get XOR = 1
+            if (trie[cur].child[opposite] != -1) {
+                value |= (1 << bit);
+                cur = trie[cur].child[opposite];
+            } else {
+                cur = trie[cur].child[b];
+            }
+        }
+
+        if (value > answer)
+            answer = value;
+    }
+
+    free(trie);
+
+    return answer;
+}
