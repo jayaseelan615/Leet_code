@@ -1,0 +1,94 @@
+#define INF 1e9
+
+typedef struct {
+    int r;
+    int c;
+    int effort;
+} HeapNode;
+
+int minimumEffortPath(int** heights, int heightsSize, int* heightsColSize) {
+    int rows = heightsSize;
+    int cols = heightsColSize[0];
+
+    int** dist = (int**)malloc(rows * sizeof(int*));
+    for (int i = 0; i < rows; i++) {
+        dist[i] = (int*)malloc(cols * sizeof(int));
+        for (int j = 0; j < cols; j++) {
+            dist[i][j] = INF;
+        }
+    }
+
+    HeapNode* heap = (HeapNode*)malloc((rows * cols * 4 + 1) * sizeof(HeapNode));
+    int heapSize = 0;
+
+    dist[0][0] = 0;
+    heap[++heapSize] = (HeapNode){0, 0, 0};
+
+    int dr[] = {-1, 1, 0, 0};
+    int dc[] = {0, 0, -1, 1};
+
+    while (heapSize > 0) {
+        HeapNode curr = heap[1];
+        int r = curr.r;
+        int c = curr.c;
+        int effort = curr.effort;
+
+        heap[1] = heap[heapSize--];
+        int parent = 1;
+        while ((parent * 2) <= heapSize) {
+            int child = parent * 2;
+            if (child + 1 <= heapSize && heap[child + 1].effort < heap[child].effort) {
+                child++;
+            }
+            if (heap[parent].effort <= heap[child].effort) {
+                break;
+            }
+            HeapNode temp = heap[parent];
+            heap[parent] = heap[child];
+            heap[child] = temp;
+            parent = child;
+        }
+
+        if (r == rows - 1 && c == cols - 1) {
+            int ans = dist[r][c];
+            for (int i = 0; i < rows; i++) free(dist[i]);
+            free(dist);
+            free(heap);
+            return ans;
+        }
+
+        if (effort > dist[r][c]) continue;
+
+        for (int i = 0; i < 4; i++) {
+            int nr = r + dr[i];
+            int nc = c + dc[i];
+
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                int diff = abs(heights[r][c] - heights[nr][nc]);
+                int nextEffort = diff > effort ? diff : effort;
+
+                if (nextEffort < dist[nr][nc]) {
+                    dist[nr][nc] = nextEffort;
+
+                    heap[++heapSize] = (HeapNode){nr, nc, nextEffort};
+                    int child = heapSize;
+                    while (child > 1) {
+                        int p = child / 2;
+                        if (heap[p].effort <= heap[child].effort) {
+                            break;
+                        }
+                        HeapNode temp = heap[p];
+                        heap[p] = heap[child];
+                        heap[child] = temp;
+                        child = p;
+                    }
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < rows; i++) free(dist[i]);
+    free(dist);
+    free(heap);
+    return 0;
+}
