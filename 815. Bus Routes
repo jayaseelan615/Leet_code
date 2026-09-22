@@ -1,0 +1,77 @@
+
+#define MAX_STOPS 1000000
+
+int numBusesToDestination(int** routes, int routesSize, int* routesColSize, int source, int target) {
+    if (source == target) return 0;
+
+    int totalElements = 0;
+    for (int i = 0; i < routesSize; i++) {
+        totalElements += routesColSize[i];
+    }
+
+    int* head = (int*)malloc(MAX_STOPS * sizeof(int));
+    int* next = (int*)malloc(totalElements * sizeof(int));
+    int* busMap = (int*)malloc(totalElements * sizeof(int));
+
+    for (int i = 0; i < MAX_STOPS; i++) head[i] = -1;
+
+    int edgeIdx = 0;
+    for (int i = 0; i < routesSize; i++) {
+        for (int j = 0; j < routesColSize[i]; j++) {
+            int stop = routes[i][j];
+            if (stop < MAX_STOPS) {
+                busMap[edgeIdx] = i;
+                next[edgeIdx] = head[stop];
+                head[stop] = edgeIdx++;
+            }
+        }
+    }
+
+    bool* visitedBuses = (bool*)calloc(routesSize, sizeof(bool));
+    bool* visitedStops = (bool*)calloc(MAX_STOPS, sizeof(bool));
+    
+    int* stopQueue = (int*)malloc(MAX_STOPS * sizeof(int));
+    int sHead = 0, sTail = 0;
+
+    stopQueue[sTail++] = source;
+    visitedStops[source] = true;
+
+    int busesTaken = 0;
+
+    while (sHead < sTail) {
+        int levelSize = sTail - sHead;
+        busesTaken++;
+
+        for (int i = 0; i < levelSize; i++) {
+            int currStop = stopQueue[sHead++];
+
+            int e = head[currStop];
+            while (e != -1) {
+                int bus = busMap[e];
+                if (!visitedBuses[bus]) {
+                    visitedBuses[bus] = true;
+
+                    for (int j = 0; j < routesColSize[bus]; j++) {
+                        int nextStop = routes[bus][j];
+                        
+                        if (nextStop == target) {
+                            free(head); free(next); free(busMap);
+                            free(visitedBuses); free(visitedStops); free(stopQueue);
+                            return busesTaken;
+                        }
+
+                        if (!visitedStops[nextStop]) {
+                            visitedStops[nextStop] = true;
+                            stopQueue[sTail++] = nextStop;
+                        }
+                    }
+                }
+                e = next[e];
+            }
+        }
+    }
+
+    free(head); free(next); free(busMap);
+    free(visitedBuses); free(visitedStops); free(stopQueue);
+    return -1;
+}
