@@ -1,0 +1,120 @@
+#define INF 1e9
+
+typedef struct {
+    int node;
+    int dist;
+} HeapNode;
+
+typedef struct {
+    int to;
+    int time;
+} FlatEdge;
+
+int networkDelayTime(int** times, int timesSize, int* timesColSize, int n, int k) {
+    int* deg = (int*)calloc(n + 1, sizeof(int));
+    for (int i = 0; i < timesSize; i++) {
+        deg[times[i][0]]++;
+    }
+
+    int* headIdx = (int*)malloc((n + 2) * sizeof(int));
+    headIdx[0] = 0;
+    headIdx[1] = 0;
+    for (int i = 1; i <= n; i++) {
+        headIdx[i + 1] = headIdx[i] + deg[i];
+    }
+
+    int* currentOffset = (int*)malloc((n + 1) * sizeof(int));
+    for (int i = 1; i <= n; i++) {
+        currentOffset[i] = headIdx[i];
+    }
+
+    FlatEdge* edges = (FlatEdge*)malloc(timesSize * sizeof(FlatEdge));
+    for (int i = 0; i < timesSize; i++) {
+        int u = times[i][0];
+        int v = times[i][1];
+        int w = times[i][2];
+        
+        int pos = currentOffset[u]++;
+        edges[pos].to = v;
+        edges[pos].time = w;
+    }
+
+    int* dist = (int*)malloc((n + 1) * sizeof(int));
+    for (int i = 1; i <= n; i++) {
+        dist[i] = INF;
+    }
+    dist[k] = 0;
+
+    HeapNode* heap = (HeapNode*)malloc((timesSize * 2 + 1) * sizeof(HeapNode));
+    int heapSize = 0;
+
+    heap[++heapSize] = (HeapNode){k, 0};
+
+    while (heapSize > 0) {
+        HeapNode curr = heap[1];
+        int currNode = curr.node;
+        int currDist = curr.dist;
+
+        heap[1] = heap[heapSize--];
+        int parent = 1;
+        while ((parent * 2) <= heapSize) {
+            int child = parent * 2;
+            if (child + 1 <= heapSize && heap[child + 1].dist < heap[child].dist) {
+                child++;
+            }
+            if (heap[parent].dist <= heap[child].dist) {
+                break;
+            }
+            HeapNode temp = heap[parent];
+            heap[parent] = heap[child];
+            heap[child] = temp;
+            parent = child;
+        }
+
+        if (currDist > dist[currNode]) continue;
+
+        int start = headIdx[currNode];
+        int end = headIdx[currNode + 1];
+        for (int i = start; i < end; i++) {
+            int nextNode = edges[i].to;
+            int nextTime = edges[i].time;
+
+            if (dist[currNode] + nextTime < dist[nextNode]) {
+                dist[nextNode] = dist[currNode] + nextTime;
+                
+                heap[++heapSize] = (HeapNode){nextNode, dist[nextNode]};
+                int child = heapSize;
+                while (child > 1) {
+                    int p = child / 2;
+                    if (heap[p].dist <= heap[child].dist) {
+                        break;
+                    }
+                    HeapNode temp = heap[p];
+                    heap[p] = heap[child];
+                    heap[child] = temp;
+                    child = p;
+                }
+            }
+        }
+    }
+
+    int maxDelay = 0;
+    for (int i = 1; i <= n; i++) {
+        if (dist[i] == INF) {
+            maxDelay = -1;
+            break;
+        }
+        if (dist[i] > maxDelay) {
+            maxDelay = dist[i];
+        }
+    }
+
+    free(deg);
+    free(headIdx);
+    free(currentOffset);
+    free(edges);
+    free(dist);
+    free(heap);
+
+    return maxDelay;
+}
